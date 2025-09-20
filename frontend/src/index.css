@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* optional typography style for PortableText */
+.prose {
+  max-width: 75ch;
+}
