@@ -1,20 +1,30 @@
+// src/components/ImageSerializer.jsx
 import React from "react";
+import { urlFor } from "../lib/imageBuilder";
 
 export default function ImageSerializer({ value }) {
-  if (!value?.asset) return null;
+  // value can be an image block with asset ref or externalUrl field
+  const uploaded = value?.asset || value?._ref;
+  const external = value?.externalUrl || value?.externalImageUrl;
+
+  let src = null;
+  if (uploaded) {
+    try {
+      const builder = urlFor(value);
+      src = builder && typeof builder.width === "function" ? builder.width(1200).auto("format").fit("max").url() : builder;
+    } catch (e) {
+      console.warn("urlFor error", e);
+    }
+  } else if (external) {
+    src = external;
+  }
+
+  if (!src) return null;
 
   return (
     <figure className="my-6">
-      <img
-        src={value.asset.url}
-        alt={value.alt || "image"}
-        className="rounded-lg mx-auto"
-      />
-      {value.caption && (
-        <figcaption className="mt-2 text-center text-sm text-gray-500 dark:text-slate-400">
-          {value.caption}
-        </figcaption>
-      )}
+      <img src={src} alt={value?.alt || "Illustration"} loading="lazy" className="w-full rounded" />
+      {value?.caption && <figcaption className="text-sm text-slate-500 mt-2">{value.caption}</figcaption>}
     </figure>
   );
 }
