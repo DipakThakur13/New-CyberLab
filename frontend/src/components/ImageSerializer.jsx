@@ -3,7 +3,7 @@ import React from "react";
 import { urlFor } from "../lib/imageBuilder";
 
 export default function ImageSerializer({ value }) {
-  // value can be an image block with asset ref or externalUrl field
+  // value may contain: asset, _ref, externalUrl, alt, caption
   const uploaded = value?.asset || value?._ref;
   const external = value?.externalUrl || value?.externalImageUrl;
 

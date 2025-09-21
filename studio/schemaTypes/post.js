@@ -1,90 +1,103 @@
 // studio/schemas/post.js
-// Updated Post schema: keeps uploaded Sanity image support but also adds an
-// optional externalImageUrl field so editors can paste a hosted image URL.
-// Frontend should prefer `mainImage` (Sanity asset) and fall back to
-// `externalImageUrl` when present.
+import seo from "./seo";
 
 export default {
   name: "post",
   type: "document",
   title: "Post",
+  fieldsets: [
+    { name: "meta", title: "Meta", options: { collapsible: true } }
+  ],
   fields: [
-    { name: "title", type: "string", title: "Title" },
+    { name: "title", type: "string", title: "Title", validation: Rule => Rule.required().min(3) },
 
     {
       name: "slug",
       type: "slug",
       title: "Slug",
-      description: "URL-friendly id generated from the title",
-      options: { source: "title", maxLength: 96 }
+      options: { source: "title", maxLength: 96 },
+      validation: Rule => Rule.required()
     },
 
-    // Uploaded image (Sanity asset) — still recommended because of
-    // transformations and CDN performance.
     {
       name: "mainImage",
       type: "image",
-      title: "Main Image (upload)",
+      title: "Main image (upload)",
       options: { hotspot: true },
       fields: [
-        { name: "alt", type: "string", title: "Alt text", description: "Short description for accessibility" },
-        { name: "credit", type: "string", title: "Credit / Source", description: "Optional image credit" }
+        { name: "alt", type: "string", title: "Alt text" },
+        { name: "credit", type: "string", title: "Credit / source" }
       ]
     },
 
-    // New: external URL alternative. Frontend should use this only when
-    // mainImage is not provided.
     {
       name: "externalImageUrl",
       type: "url",
-      title: "Main Image (external URL)",
-      description:
-        "Optional: paste a full https:// URL for an externally hosted image. " +
-        "Frontend will prefer uploaded images (mainImage) but will use this URL if no upload is present.",
-      validation: (Rule) =>
-        Rule.uri({
-          allowRelative: false,
-          scheme: ["https", "http"]
-        }).error("Please enter a valid absolute http(s) URL")
+      title: "Main image (external URL)",
+      description: "Optional fallback URL used when there is no uploaded image.",
+      validation: Rule => Rule.uri({ scheme: ["http", "https"], allowRelative: false })
     },
 
-    // Optional field for recording where an external image came from
-    {
-      name: "imageSource",
-      type: "string",
-      title: "Image provider / source (optional)",
-      description: "Optional: provider name or attribution for external images"
-    },
-
-    { name: "author", type: "reference", to: [{ type: "author" }], title: "Author" },
+    { name: "author", type: "reference", to: [{ type: "author" }], title: "Author", validation: Rule => Rule.required() },
 
     {
       name: "categories",
       type: "array",
       title: "Categories",
-      of: [{ type: "reference", to: { type: "category" } }]
+      of: [{ type: "reference", to: { type: "category" } }],
+      options: { layout: "tags" }
     },
+
+    { name: "summary", type: "text", title: "Summary", description: "Short blurb for listing pages" },
+
+    { name: "body", type: "blockContent", title: "Body", description: "Main article content" },
 
     { name: "publishedAt", type: "datetime", title: "Published at" },
 
-    { name: "summary", type: "text", title: "Summary", description: "Short summary shown on listings" },
+    {
+      name: "readTime",
+      type: "number",
+      title: "Estimated read time (minutes)",
+      description: "Optional. Fill manually or run the generator script to compute automatically."
+    },
 
-    { name: "body", type: "blockContent", title: "Body" }
+    {
+      name: "featured",
+      type: "boolean",
+      title: "Featured",
+      description: "Set to show on homepage / hero sections"
+    },
+
+    // SEO object
+    {
+      name: "seo",
+      title: "SEO / Social",
+      type: "seo",
+      fieldset: "meta"
+    },
+
+    {
+      name: "canonicalUrl",
+      type: "url",
+      title: "Canonical URL",
+      fieldset: "meta",
+      description: "Set if the post is canonical to another URL (for syndicated content)"
+    }
   ],
 
-  // Optional: improve Studio list previews so uploaded image is shown if present.
   preview: {
     select: {
       title: "title",
+      author: "author.name",
       media: "mainImage",
-      subtitle: "author.name"
+      publishedAt: "publishedAt"
     },
     prepare(selection) {
-      const { title, media, subtitle } = selection;
+      const { title, author, media, publishedAt } = selection;
       return {
         title,
-        subtitle,
-        media // will show mainImage when available; externalImageUrl is not shown here
+        subtitle: author ? `by ${author}` : publishedAt ? `${new Date(publishedAt).toLocaleDateString()}` : "Draft",
+        media
       };
     }
   }
