@@ -1,7 +1,7 @@
 // src/lib/sanity.js
 import sanityClient from "@sanity/client";
 
-const projectId = import.meta.env.VITE_SANITY_PROJECT_ID;
+const projectId = import.meta.env.VITE_SANITY_PROJECT_ID || "k6ix4pv9";
 const dataset = import.meta.env.VITE_SANITY_DATASET || "production";
 const apiVersion = import.meta.env.VITE_SANITY_API_VERSION || "2024-06-01";
 const useCdn = import.meta.env.VITE_SANITY_USE_CDN === "true";
