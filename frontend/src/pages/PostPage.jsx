@@ -3,12 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { PortableText } from "@portabletext/react";
 import Prism from "prismjs";
-import "prismjs/themes/prism.css"; // or prism-okaidia.css for dark mode
-import "prismjs/plugins/line-numbers/prism-line-numbers.css";
-import "prismjs/plugins/line-numbers/prism-line-numbers";
-import "prismjs/plugins/toolbar/prism-toolbar.css";
-import "prismjs/plugins/toolbar/prism-toolbar";
-import "prismjs/plugins/copy-to-clipboard/prism-copy-to-clipboard";
+import "prismjs/themes/prism.css"; // base Prism theme (we override bg/colors via CSS variables)
 
 import { client, isMock } from "../lib/sanity";
 import { SINGLE_POST_QUERY } from "../lib/queries";
@@ -33,24 +28,24 @@ const portableComponents = {
   block: {
     h2: ({ children }) => {
       const text = Array.isArray(children) ? children.join("") : children;
-      const id = String(text).toLowerCase().replace(/[^\w]+/g, "-").replace(/(^-|-$)/g, "");
+      const id = String(text)
+        .toLowerCase()
+        .replace(/[^\w]+/g, "-")
+        .replace(/(^-|-$)/g, "");
       return (
-        <h2
-          id={id}
-          className="scroll-mt-28 text-2xl font-bold mt-10 mb-4"
-        >
+        <h2 id={id} className="scroll-mt-28 text-2xl font-bold mt-10 mb-4">
           {children}
         </h2>
       );
     },
     h3: ({ children }) => {
       const text = Array.isArray(children) ? children.join("") : children;
-      const id = String(text).toLowerCase().replace(/[^\w]+/g, "-").replace(/(^-|-$)/g, "");
+      const id = String(text)
+        .toLowerCase()
+        .replace(/[^\w]+/g, "-")
+        .replace(/(^-|-$)/g, "");
       return (
-        <h3
-          id={id}
-          className="scroll-mt-28 text-xl font-semibold mt-8 mb-3"
-        >
+        <h3 id={id} className="scroll-mt-28 text-xl font-semibold mt-8 mb-3">
           {children}
         </h3>
       );
@@ -125,6 +120,52 @@ export default function PostPage() {
     Prism.highlightAll();
   }, [post]);
 
+  // Add copy buttons to each pre (and ensure good mobile behavior)
+  useEffect(() => {
+    if (!articleRef.current) return;
+    const root = articleRef.current;
+
+    // small helper to create the button
+    const createCopyButton = (pre) => {
+      if (pre.dataset.copyAttached === "true") return;
+      pre.dataset.copyAttached = "true";
+      pre.style.position = pre.style.position || "relative"; // allow absolute children
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "code-copy-btn";
+      btn.innerText = "Copy";
+      btn.setAttribute("aria-label", "Copy code");
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        const codeEl = pre.querySelector("code");
+        const text = codeEl ? codeEl.innerText : pre.innerText;
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.innerText = "Copied";
+          setTimeout(() => (btn.innerText = "Copy"), 1800);
+        } catch (err) {
+          console.error("Copy failed:", err);
+          btn.innerText = "Copy";
+        }
+      };
+      pre.appendChild(btn);
+    };
+
+    const pres = Array.from(root.querySelectorAll("pre"));
+    pres.forEach((pre) => {
+      // ensure pre width never pushes layout; add styling attributes via inline style when necessary
+      pre.style.boxSizing = "border-box";
+      pre.style.maxWidth = "100%";
+      pre.style.overflowX = "auto";
+      pre.style.webkitOverflowScrolling = "touch";
+      createCopyButton(pre);
+    });
+
+    // cleanup not required (buttons removed when component unmounts)
+    return () => {};
+  }, [post]);
+
   const getHeroImage = (p) => {
     if (!p) return null;
     if (p.mainImage && (p.mainImage.asset || p.mainImage._ref)) {
@@ -137,9 +178,7 @@ export default function PostPage() {
       } catch (e) {}
     }
     if (p.externalImageUrl) return p.externalImageUrl;
-    return `https://picsum.photos/seed/${encodeURIComponent(
-      p.slug?.current || p._id
-    )}/1600/700`;
+    return `https://picsum.photos/seed/${encodeURIComponent(p.slug?.current || p._id)}/1600/700`;
   };
 
   if (loading) {
@@ -169,9 +208,7 @@ export default function PostPage() {
           </h1>
           <div className="text-sm text-slate-400 mb-4">
             By {post.author?.name || "Unknown"} •{" "}
-            {post.publishedAt
-              ? new Date(post.publishedAt).toLocaleDateString()
-              : ""}
+            {post.publishedAt ? new Date(post.publishedAt).toLocaleDateString() : ""}
           </div>
 
           {hero && (
@@ -191,57 +228,145 @@ export default function PostPage() {
             ref={articleRef}
             className="lg:col-span-3 prose prose-lg prose-slate dark:prose-invert max-w-none"
             style={{
-              fontSize: "1.05rem",
+              fontSize: "1.02rem",
               lineHeight: "1.7",
-              color: "#1a1a1a",
-              maxWidth: "850px",
-              margin: "auto",
-              padding: "1rem",
+              color: "inherit",
+              padding: "0.25rem 0.5rem",
             }}
           >
+            {/* PortableText renders the article body */}
             <PortableText value={post.body} components={portableComponents} />
 
-            {/* Inline CSS for typography + code blocks */}
-            <style>
-              {`
-                .prose h1, .prose h2, .prose h3 {
-                  font-weight: 700;
-                  margin-top: 2rem;
-                  margin-bottom: 1rem;
-                }
-                .prose p {
-                  margin-bottom: 1rem;
-                }
+            {/* Inline CSS that controls code block look + light/dark variables + responsive tweaks */}
+            <style>{`
+              /* Theme variables - adapt when .dark class is present on root (Tailwind style) */
+              :root {
+                --code-bg: #0f172a;          /* dark navy for code blocks in light mode (keeps contrast) */
+                --code-color: #e6eef8;       /* light text for code */
+                --inline-code-bg: #eef2ff;   /* subtle inline code bg in light mode */
+                --inline-code-color: #07122a;
+                --pre-border: rgba(0,0,0,0.08);
+                --copy-btn-bg: rgba(255,255,255,0.06);
+                --copy-btn-color: #e6eef8;
+              }
+              .dark :root, .dark {
+                /* when Tailwind toggles dark on an ancestor (html or body) this will apply */
+                --code-bg: #0b1220;
+                --code-color: #dbeafe;
+                --inline-code-bg: #0f172a;
+                --inline-code-color: #dbeafe;
+                --pre-border: rgba(255,255,255,0.06);
+                --copy-btn-bg: rgba(255,255,255,0.06);
+                --copy-btn-color: #e6eef8;
+              }
+
+              /* Article spacing adjustments */
+              .prose {
+                box-sizing: border-box;
+              }
+              .prose p {
+                margin-bottom: 1rem;
+              }
+              .prose h1, .prose h2, .prose h3 {
+                font-weight: 700;
+                margin-top: 1.6rem;
+                margin-bottom: 0.6rem;
+              }
+
+              /* ---------- Code block (pre) styling ---------- */
+              .prose pre {
+                background: var(--code-bg);
+                color: var(--code-color);
+                padding: 12px 12px 12px 12px;
+                border-radius: 8px;
+                overflow-x: auto;
+                box-shadow: none;
+                border: 1px solid var(--pre-border);
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Fira Code", "Consolas", "Liberation Mono", monospace;
+                font-size: 0.92rem;
+                line-height: 1.5;
+                white-space: pre;           /* prevent wrapping; allow horizontal scroll */
+                word-break: normal;
+                margin: 1rem 0;
+                position: relative;        /* for copy button */
+                -webkit-overflow-scrolling: touch; /* smooth scroll on mobile */
+              }
+
+              /* Ensure code tag inside pre uses the same look */
+              .prose pre code {
+                background: transparent;
+                color: inherit; /* keep Prism token colors readable; fallback to code-color */
+                font-family: inherit;
+                font-size: inherit;
+                line-height: inherit;
+              }
+
+              /* Make sure long lines don't expand container width */
+              .prose pre::-webkit-scrollbar { height: 8px; }
+              .prose pre::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 6px; }
+
+              /* Inline code inside paragraphs */
+              .prose code {
+                background: var(--inline-code-bg);
+                color: var(--inline-code-color);
+                padding: 0.15rem 0.35rem;
+                border-radius: 6px;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Fira Code", "Consolas", monospace;
+                font-size: 0.92em;
+              }
+
+              /* Copy button - small, unobtrusive, positioned top-right inside pre */
+              .code-copy-btn {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                z-index: 6;
+                background: rgba(255,255,255,0.06);
+                color: var(--copy-btn-color);
+                border: none;
+                padding: 6px 9px;
+                border-radius: 6px;
+                font-size: 0.78rem;
+                cursor: pointer;
+                transition: background 120ms ease, transform 120ms ease;
+                backdrop-filter: blur(4px);
+              }
+              .code-copy-btn:hover {
+                transform: translateY(-1px);
+                background: rgba(255,255,255,0.09);
+              }
+
+              /* Responsive: smaller padding & font on very small screens */
+              @media (max-width: 640px) {
                 .prose pre {
-                  background: #1e293b;
-                  color: #e2e8f0;
-                  padding: 1rem;
-                  border-radius: 0.5rem;
-                  overflow-x: auto;
-                  font-family: "Fira Code", "Consolas", monospace;
-                  font-size: 0.9rem;
-                  line-height: 1.6;
+                  font-size: 0.86rem;
+                  padding: 10px;
+                  border-radius: 6px;
                 }
-                .prose pre[class*="language-"] {
-                  position: relative;
+                .code-copy-btn {
+                  top: 6px;
+                  right: 6px;
+                  padding: 5px 7px;
+                  font-size: 0.72rem;
                 }
-                .prose code {
-                  font-family: "Fira Code", "Consolas", monospace;
-                  background: #f5f5f5;
-                  color: #111827;
-                  padding: 0.2rem 0.4rem;
-                  border-radius: 0.25rem;
+                .prose {
+                  padding-left: 0.25rem;
+                  padding-right: 0.25rem;
                 }
-                .dark .prose code {
-                  background: #334155;
-                  color: #f1f5f9;
-                }
-                /* Line numbers */
-                pre.line-numbers {
-                  padding-left: 2.8em;
-                }
-              `}
-            </style>
+              }
+
+              /* If you want to hide scrollbar on small screens but still allow scroll */
+              @media (max-width: 420px) {
+                .prose pre { -ms-overflow-style: none; scrollbar-width: none; }
+                .prose pre::-webkit-scrollbar { display: none; }
+              }
+
+              /* Keep Prism token colors readable by using inherited color as baseline.
+                 This avoids the theme making tokens unreadable in dark/light modes.
+                 If you prefer full syntax colors, remove the next rule. */
+              .prose pre code .token { color: inherit !important; }
+
+            `}</style>
           </article>
 
           {/* Sidebar TOC */}
@@ -250,18 +375,12 @@ export default function PostPage() {
               <div className="bg-white dark:bg-slate-800 border dark:border-slate-700 p-4 rounded-md shadow-sm">
                 <div className="text-sm font-semibold mb-3">On this page</div>
                 <nav className="text-sm space-y-2">
-                  {toc.length === 0 && (
-                    <div className="text-xs text-slate-500">No headings</div>
-                  )}
+                  {toc.length === 0 && <div className="text-xs text-slate-500">No headings</div>}
                   {toc.map((h, i) => (
                     <a
                       key={i}
                       href={`#${h.id}`}
-                      className={`block hover:text-sky-600 ${
-                        h.level === "h2"
-                          ? "font-medium"
-                          : "pl-4 text-slate-500"
-                      }`}
+                      className={`block hover:text-sky-600 ${h.level === "h2" ? "font-medium" : "pl-4 text-slate-500"}`}
                     >
                       {h.text}
                     </a>
