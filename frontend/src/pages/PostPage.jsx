@@ -3,7 +3,12 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { PortableText } from "@portabletext/react";
 import Prism from "prismjs";
-import "prismjs/themes/prism.css"; // you can switch to prism-okaidia.css for dark mode
+import "prismjs/themes/prism.css"; // or prism-okaidia.css for dark mode
+import "prismjs/plugins/line-numbers/prism-line-numbers.css";
+import "prismjs/plugins/line-numbers/prism-line-numbers";
+import "prismjs/plugins/toolbar/prism-toolbar.css";
+import "prismjs/plugins/toolbar/prism-toolbar";
+import "prismjs/plugins/copy-to-clipboard/prism-copy-to-clipboard";
 
 import { client, isMock } from "../lib/sanity";
 import { SINGLE_POST_QUERY } from "../lib/queries";
@@ -29,12 +34,26 @@ const portableComponents = {
     h2: ({ children }) => {
       const text = Array.isArray(children) ? children.join("") : children;
       const id = String(text).toLowerCase().replace(/[^\w]+/g, "-").replace(/(^-|-$)/g, "");
-      return <h2 id={id} className="scroll-mt-28 text-2xl font-bold mt-10 mb-4">{children}</h2>;
+      return (
+        <h2
+          id={id}
+          className="scroll-mt-28 text-2xl font-bold mt-10 mb-4"
+        >
+          {children}
+        </h2>
+      );
     },
     h3: ({ children }) => {
       const text = Array.isArray(children) ? children.join("") : children;
       const id = String(text).toLowerCase().replace(/[^\w]+/g, "-").replace(/(^-|-$)/g, "");
-      return <h3 id={id} className="scroll-mt-28 text-xl font-semibold mt-8 mb-3">{children}</h3>;
+      return (
+        <h3
+          id={id}
+          className="scroll-mt-28 text-xl font-semibold mt-8 mb-3"
+        >
+          {children}
+        </h3>
+      );
     },
   },
   marks: {
@@ -118,7 +137,9 @@ export default function PostPage() {
       } catch (e) {}
     }
     if (p.externalImageUrl) return p.externalImageUrl;
-    return `https://picsum.photos/seed/${encodeURIComponent(p.slug?.current || p._id)}/1600/700`;
+    return `https://picsum.photos/seed/${encodeURIComponent(
+      p.slug?.current || p._id
+    )}/1600/700`;
   };
 
   if (loading) {
@@ -169,8 +190,58 @@ export default function PostPage() {
           <article
             ref={articleRef}
             className="lg:col-span-3 prose prose-lg prose-slate dark:prose-invert max-w-none"
+            style={{
+              fontSize: "1.05rem",
+              lineHeight: "1.7",
+              color: "#1a1a1a",
+              maxWidth: "850px",
+              margin: "auto",
+              padding: "1rem",
+            }}
           >
             <PortableText value={post.body} components={portableComponents} />
+
+            {/* Inline CSS for typography + code blocks */}
+            <style>
+              {`
+                .prose h1, .prose h2, .prose h3 {
+                  font-weight: 700;
+                  margin-top: 2rem;
+                  margin-bottom: 1rem;
+                }
+                .prose p {
+                  margin-bottom: 1rem;
+                }
+                .prose pre {
+                  background: #1e293b;
+                  color: #e2e8f0;
+                  padding: 1rem;
+                  border-radius: 0.5rem;
+                  overflow-x: auto;
+                  font-family: "Fira Code", "Consolas", monospace;
+                  font-size: 0.9rem;
+                  line-height: 1.6;
+                }
+                .prose pre[class*="language-"] {
+                  position: relative;
+                }
+                .prose code {
+                  font-family: "Fira Code", "Consolas", monospace;
+                  background: #f5f5f5;
+                  color: #111827;
+                  padding: 0.2rem 0.4rem;
+                  border-radius: 0.25rem;
+                }
+                .dark .prose code {
+                  background: #334155;
+                  color: #f1f5f9;
+                }
+                /* Line numbers */
+                pre.line-numbers {
+                  padding-left: 2.8em;
+                }
+              `}
+            </style>
           </article>
 
           {/* Sidebar TOC */}
