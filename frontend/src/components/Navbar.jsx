@@ -8,15 +8,25 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [results, setResults] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
 
-  // Auto-close mobile menu after 3 seconds
+  // Detect typing in search bar
+  useEffect(() => {
+    if (search.trim() !== "") {
+      setIsTyping(true);
+    } else {
+      setIsTyping(false);
+    }
+  }, [search]);
+
+  // Auto-close mobile menu after 5 seconds if not typing/searching
   useEffect(() => {
     let timer;
-    if (menuOpen) {
-      timer = setTimeout(() => setMenuOpen(false), 3000);
+    if (menuOpen && !isTyping) {
+      timer = setTimeout(() => setMenuOpen(false), 5000);
     }
     return () => clearTimeout(timer);
-  }, [menuOpen]);
+  }, [menuOpen, isTyping]);
 
   // Fetch & filter articles from Sanity when searching
   useEffect(() => {
@@ -177,7 +187,7 @@ export default function Navbar() {
                       key={post._id}
                       to={`/post/${post.slug.current}`}
                       className="block px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200"
-                      onClick={() => setMenuOpen(false)}
+                      onClick={() => setMenuOpen(false)} // Close after clicking
                     >
                       {post.title}
                     </Link>
