@@ -63,10 +63,10 @@ export default function AboutPage() {
       <p className="text-slate-700 dark:text-slate-300 mb-6">
         📩 Send your articles to{" "}
         <a
-          href="mailto:info@cyberlab.boswas.co.in"
+          href="cyberlab.boswas@gmail.com"
           className="text-sky-600 dark:text-sky-400 hover:underline"
         >
-          info@cyberlab.boswas.co.in
+          cyberlab.boswas@gmail.com
         </a>{" "}
         or connect with us on{" "}
         <a
