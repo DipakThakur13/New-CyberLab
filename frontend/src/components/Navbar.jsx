@@ -21,7 +21,6 @@ export default function Navbar() {
             <Link to="/articles" className="text-sm text-gray-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-300">Articles</Link>
             <Link to="/categories" className="text-sm text-gray-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-300">Categories</Link>
             <Link to="/about" className="text-sm text-gray-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-300">About</Link>
-            <Link to="/quiz" className="text-sm text-gray-700 dark:text-slate-200 hover:text-sky-600 dark:hover:text-sky-300">Quizs</Link>
           </nav>
 
           <div className="flex items-center gap-3">
