@@ -13,3 +13,5 @@ Monorepo with two apps:
    cp .env.local.example .env.local
    # edit .env.local with your Sanity project id/dataset
    npm run dev
+
+visit https://cyberlab.boswas.co.in for the preview of site it is functional
