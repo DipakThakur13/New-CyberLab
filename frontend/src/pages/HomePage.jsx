@@ -3,7 +3,6 @@ import React, { useEffect, useState } from "react";
 import ArticleCard from "../components/ArticleCard";
 import CategoryChip from "../components/CategoryChip";
 import SkeletonCard from "../components/SkeletonCard";
-import DiwaliPopup from "../components/DiwaliPopup";
 import { client, isMock } from "../lib/sanity";
 import { LIST_POSTS_QUERY } from "../lib/queries";
 
@@ -117,11 +116,6 @@ export default function HomePage() {
 
   return (
     <div className="relative container mx-auto px-4 md:px-6 lg:px-8 py-10">
-      {/* Diwali Greeting Popup */}
-      {showDiwaliPopup && (
-        <DiwaliPopup onClose={() => setShowDiwaliPopup(false)} />
-      )}
-
       {/* Hero */}
       <section className="rounded-lg p-6 md:p-10 mb-8 shadow-sm bg-gradient-to-r from-sky-50 to-white dark:from-slate-800 dark:to-slate-900">
         <div className="max-w-4xl">
