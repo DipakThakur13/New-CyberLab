@@ -1,8 +1,9 @@
-﻿// src/pages/HomePage.jsx
+// src/pages/HomePage.jsx
 import React, { useEffect, useState } from "react";
 import ArticleCard from "../components/ArticleCard";
 import CategoryChip from "../components/CategoryChip";
 import SkeletonCard from "../components/SkeletonCard";
+import DiwaliPopup from "../components/DiwaliPopup";
 import { client, isMock } from "../lib/sanity";
 import { LIST_POSTS_QUERY } from "../lib/queries";
 
@@ -68,6 +69,14 @@ const CATEGORIES = [
 export default function HomePage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showDiwaliPopup, setShowDiwaliPopup] = useState(false);
+
+  // Show Diwali popup on mount (and auto-hide after 10 sec)
+  useEffect(() => {
+    setShowDiwaliPopup(true);
+    const timer = setTimeout(() => setShowDiwaliPopup(false), 10000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch posts from Sanity (or fall back to mock)
   useEffect(() => {
@@ -75,7 +84,6 @@ export default function HomePage() {
     setLoading(true);
 
     if (isMock) {
-      // local mock fallback
       const t = setTimeout(() => {
         if (!mounted) return;
         setPosts(MOCK_POSTS);
@@ -87,18 +95,15 @@ export default function HomePage() {
       };
     }
 
-    // Real Sanity fetch
     const q = LIST_POSTS_QUERY(0, 8);
     client
       .fetch(q)
       .then((data) => {
         if (!mounted) return;
-        // data is already in shape from GROQ (see queries.js)
         setPosts(data || []);
       })
       .catch((err) => {
         console.error("Sanity fetch error:", err);
-        // fallback to mock on error (optional)
         if (mounted) setPosts(MOCK_POSTS);
       })
       .finally(() => {
@@ -111,7 +116,12 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="container mx-auto px-4 md:px-6 lg:px-8 py-10">
+    <div className="relative container mx-auto px-4 md:px-6 lg:px-8 py-10">
+      {/* Diwali Greeting Popup */}
+      {showDiwaliPopup && (
+        <DiwaliPopup onClose={() => setShowDiwaliPopup(false)} />
+      )}
+
       {/* Hero */}
       <section className="rounded-lg p-6 md:p-10 mb-8 shadow-sm bg-gradient-to-r from-sky-50 to-white dark:from-slate-800 dark:to-slate-900">
         <div className="max-w-4xl">
@@ -119,7 +129,8 @@ export default function HomePage() {
             CyberLab — Practical cybersecurity tutorials
           </h1>
           <p className="text-slate-600 dark:text-slate-300">
-            Hands-on guides, real-world examples and step-by-step walkthroughs for security practitioners and students.
+            Hands-on guides, real-world examples and step-by-step walkthroughs
+            for security practitioners and students.
           </p>
         </div>
       </section>
@@ -129,18 +140,24 @@ export default function HomePage() {
         {/* Main */}
         <main className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Latest Articles</h2>
-            <a href="#all" className="text-sm text-sky-600 dark:text-sky-300 hover:underline">See all</a>
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+              Latest Articles
+            </h2>
+            <a
+              href="#all"
+              className="text-sm text-sky-600 dark:text-sky-300 hover:underline"
+            >
+              See all
+            </a>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2">
             {loading
-              ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+              ? Array.from({ length: 4 }).map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))
               : posts.map((p) => (
-                  <ArticleCard
-                    key={p._id || p.slug || p.id}
-                    post={p}
-                  />
+                  <ArticleCard key={p._id || p.slug || p.id} post={p} />
                 ))}
           </div>
         </main>
@@ -148,7 +165,9 @@ export default function HomePage() {
         {/* Sidebar */}
         <aside className="space-y-6">
           <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-transparent dark:border-slate-700">
-            <h4 className="font-semibold mb-2 text-slate-900 dark:text-slate-100">Search</h4>
+            <h4 className="font-semibold mb-2 text-slate-900 dark:text-slate-100">
+              Search
+            </h4>
             <input
               placeholder="Search tutorials..."
               className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-300 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-200"
@@ -156,7 +175,9 @@ export default function HomePage() {
           </div>
 
           <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-transparent dark:border-slate-700">
-            <h4 className="font-semibold mb-3 text-slate-900 dark:text-slate-100">Categories</h4>
+            <h4 className="font-semibold mb-3 text-slate-900 dark:text-slate-100">
+              Categories
+            </h4>
             <div className="flex flex-wrap gap-2">
               {CATEGORIES.map((c) => (
                 <CategoryChip key={c.title} category={c} count={c.count} />
@@ -165,11 +186,34 @@ export default function HomePage() {
           </div>
 
           <div className="bg-white dark:bg-slate-800 p-4 rounded-lg shadow-sm border border-transparent dark:border-slate-700">
-            <h4 className="font-semibold mb-2 text-slate-900 dark:text-slate-100">Popular</h4>
+            <h4 className="font-semibold mb-2 text-slate-900 dark:text-slate-100">
+              Popular
+            </h4>
             <ul className="text-sm space-y-2">
-              <li><a href="#" className="text-sky-600 dark:text-sky-300 hover:underline">Top 10 Nmap Commands</a></li>
-              <li><a href="#" className="text-sky-600 dark:text-sky-300 hover:underline">TLS: What you need to know</a></li>
-              <li><a href="#" className="text-sky-600 dark:text-sky-300 hover:underline">Pen-testing checklist</a></li>
+              <li>
+                <a
+                  href="#"
+                  className="text-sky-600 dark:text-sky-300 hover:underline"
+                >
+                  Top 10 Nmap Commands
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  className="text-sky-600 dark:text-sky-300 hover:underline"
+                >
+                  TLS: What you need to know
+                </a>
+              </li>
+              <li>
+                <a
+                  href="#"
+                  className="text-sky-600 dark:text-sky-300 hover:underline"
+                >
+                  Pen-testing checklist
+                </a>
+              </li>
             </ul>
           </div>
         </aside>
