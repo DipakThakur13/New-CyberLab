@@ -1,0 +1,95 @@
+:root {
+  --bg: #0b0720;
+  --card: #0f1025;
+  --accent: #ffb703;
+  --text: #ffffff;
+}
+#confettiCanvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9998;
+}
+.diwali-greeting {
+  position: fixed;
+  inset: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 9999;
+}
+.card {
+  width: min(920px, 96%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(0, 0, 0, 0.12));
+  border-radius: 18px;
+  padding: 24px 28px;
+  box-shadow: 0 10px 40px rgba(2, 6, 23, 0.6);
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+  transform: translateY(-8px);
+  opacity: 0;
+  animation: enter 0.7s cubic-bezier(.2,.9,.3,1) forwards;
+}
+.left {
+  flex: 1;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(20px, 4.5vw, 36px);
+  letter-spacing: 0.6px;
+}
+p.sub {
+  margin: 8px 0 0 0;
+  opacity: 0.9;
+}
+.actions {
+  margin-top: 14px;
+}
+.btn {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--accent), #ff7a00);
+  color: #111;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+}
+.close {
+  margin-left: 12px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+}
+.visual {
+  width: 150px;
+  height: 120px;
+  flex: 0 0 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+@media (max-width: 600px) {
+  .card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .visual {
+    order: -1;
+  }
+}
+@keyframes enter {
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
