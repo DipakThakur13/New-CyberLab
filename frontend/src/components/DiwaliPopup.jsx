@@ -1,180 +1,152 @@
 import React, { useEffect, useRef, useState } from "react";
-import "./diwali.css"; // we’ll create this next
+import "./DiwaliPopup.css";
 
-export default function DiwaliPopup() {
+const DiwaliPopup = () => {
   const canvasRef = useRef(null);
-  const [visible, setVisible] = useState(true);
+  const [showPopup, setShowPopup] = useState(true);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    let W = (canvas.width = window.innerWidth);
-    let H = (canvas.height = window.innerHeight);
-    const particles = [];
+    let rockets = [];
+    let particles = [];
+    let animationFrame;
 
-    window.addEventListener("resize", () => {
-      W = canvas.width = window.innerWidth;
-      H = canvas.height = window.innerHeight;
-    });
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
 
-    class Particle {
-      constructor(x, y, dx, dy, color, size, ttl) {
-        this.x = x;
-        this.y = y;
-        this.dx = dx;
-        this.dy = dy;
-        this.color = color;
-        this.size = size;
-        this.ttl = ttl;
-        this.age = 0;
+    class Rocket {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = canvas.height;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = -(Math.random() * 8 + 12);
+        this.color = `hsl(${Math.random() * 360}, 100%, 60%)`;
+        this.trail = [];
+        this.exploded = false;
       }
+
       update() {
-        this.x += this.dx;
-        this.y += this.dy;
-        this.dy += 0.04;
-        this.dx *= 0.99;
-        this.dy *= 0.999;
-        this.age++;
+        this.trail.push({ x: this.x, y: this.y, alpha: 1 });
+        if (this.trail.length > 10) this.trail.shift();
+
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += 0.2; // gravity
+
+        if (this.vy >= 0 && !this.exploded) {
+          this.explode();
+          this.exploded = true;
+        }
       }
-      draw() {
-        ctx.globalAlpha = Math.max(1 - this.age / this.ttl, 0);
-        ctx.fillStyle = this.color;
+
+      explode() {
+        const count = 80 + Math.random() * 50;
+        for (let i = 0; i < count; i++) {
+          const angle = (Math.PI * 2 * i) / count;
+          const speed = Math.random() * 6 + 2;
+          particles.push({
+            x: this.x,
+            y: this.y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            alpha: 1,
+            color: this.color,
+            radius: Math.random() * 2 + 1,
+          });
+        }
+      }
+
+      draw(ctx) {
+        // draw trail
+        for (let i = 0; i < this.trail.length; i++) {
+          const t = this.trail[i];
+          ctx.globalAlpha = t.alpha;
+          ctx.beginPath();
+          ctx.arc(t.x, t.y, 2, 0, 2 * Math.PI);
+          ctx.fillStyle = this.color;
+          ctx.fill();
+          t.alpha -= 0.1;
+        }
+
+        // draw rocket
+        ctx.globalAlpha = 1;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.arc(this.x, this.y, 2, 0, 2 * Math.PI);
+        ctx.fillStyle = this.color;
         ctx.fill();
       }
     }
 
-    const explode = (x, y, color, spread = 8, count = 60) => {
-      for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const speed = Math.random() * spread + 2;
-        const dx = Math.cos(angle) * speed;
-        const dy = Math.sin(angle) * speed;
-        const size = Math.random() * 3 + 1.2;
-        const ttl = 60 + Math.floor(Math.random() * 40);
-        particles.push(new Particle(x, y, dx, dy, color, size, ttl));
-      }
-    };
+    function animate() {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const launchFirework = () => {
-      const x = Math.random() * (W * 0.8) + W * 0.1;
-      const peak = Math.random() * (H * 0.5) + H * 0.15;
-      const shell = { x: W / 2, y: H, tx: x, ty: peak, progress: 0 };
-      const rise = setInterval(() => {
-        shell.progress += 0.03 + Math.random() * 0.02;
-        shell.x = shell.x + (shell.tx - shell.x) * 0.06;
-        shell.y = shell.y + (shell.ty - shell.y) * 0.06;
+      rockets.forEach((r, i) => {
+        r.update();
+        r.draw(ctx);
+        if (r.exploded) rockets.splice(i, 1);
+      });
+
+      particles.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.05;
+        p.alpha -= 0.015;
+        if (p.alpha <= 0) particles.splice(i, 1);
+        ctx.globalAlpha = p.alpha;
         ctx.beginPath();
-        ctx.globalAlpha = 0.9;
-        ctx.fillStyle = "rgba(255,255,255,0.6)";
-        ctx.arc(shell.x, shell.y, 2, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.radius, 0, 2 * Math.PI);
+        ctx.fillStyle = p.color;
         ctx.fill();
-        if (shell.y < shell.ty + 4 || shell.progress > 1.05) {
-          clearInterval(rise);
-          const colors = [
-            "#ffd166",
-            "#ff6b6b",
-            "#06d6a0",
-            "#7b2cbf",
-            "#4cc9f0",
-          ];
-          const c = colors[Math.floor(Math.random() * colors.length)];
-          explode(shell.x, shell.y, c, 9, 90);
-        }
-      }, 16);
+      });
+
+      animationFrame = requestAnimationFrame(animate);
+    }
+
+    function launchRocket() {
+      rockets.push(new Rocket());
+    }
+
+    const interval = setInterval(launchRocket, 800);
+    animate();
+
+    return () => {
+      clearInterval(interval);
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("resize", resizeCanvas);
     };
-
-    const playShortShow = () => {
-      for (let i = 0; i < 8; i++) {
-        setTimeout(launchFirework, i * 520 + Math.random() * 200);
-      }
-    };
-
-    const loop = () => {
-      ctx.clearRect(0, 0, W, H);
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.update();
-        p.draw();
-        if (p.age > p.ttl) particles.splice(i, 1);
-      }
-      requestAnimationFrame(loop);
-    };
-
-    loop();
-    playShortShow();
-
-    const timer = setTimeout(() => setVisible(false), 12000);
-    return () => clearTimeout(timer);
   }, []);
-
-  if (!visible) return null;
 
   return (
     <>
-      <canvas id="confettiCanvas" ref={canvasRef}></canvas>
-      <div className="diwali-greeting">
-        <div className="card">
-          <div className="left">
-            <h1>✨ Happy Diwali from CyberLab!</h1>
-            <p className="sub">
-              Wishing you brightness, safety, and lots of learning. Enjoy the
-              festival — here's a little fireworks show for you.
-            </p>
-            <div className="actions">
+      {showPopup && (
+        <>
+          <div className="blurBackground"></div>
+          <div className="diwaliPopup">
+            <div className="popup-inner">
+              <h1 className="title">🎆 Happy Diwali 🎆</h1>
+              <h2 className="subtitle">
+                May your code shine bright and your bugs vanish — from{" "}
+                <span>CyberLab</span>
+              </h2>
               <button
-                className="btn"
-                onClick={() => window.location.reload()}
+                id="closeBtn"
+                onClick={() => setShowPopup(false)}
               >
-                Play Fireworks
-              </button>
-              <button
-                className="close"
-                onClick={() => setVisible(false)}
-              >
-                Close
+                Celebrate Now
               </button>
             </div>
           </div>
-          <div className="visual" aria-hidden="true">
-            <svg
-              className="cracker"
-              viewBox="0 0 120 120"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <defs>
-                <linearGradient id="g" x1="0" x2="1">
-                  <stop offset="0" stopColor="#ffd166" />
-                  <stop offset="1" stopColor="#ff6b6b" />
-                </linearGradient>
-              </defs>
-              <g transform="translate(10,10)">
-                <rect
-                  x="20"
-                  y="10"
-                  width="60"
-                  height="80"
-                  rx="10"
-                  fill="url(#g)"
-                  stroke="#fff3"
-                  strokeWidth="2"
-                  transform="rotate(18 50 50)"
-                />
-                <polygon
-                  points="0,0 18,6 4,18"
-                  fill="#ffd166"
-                  transform="translate(78,6) rotate(18)"
-                />
-                <g transform="translate(30,6)">
-                  <circle cx="6" cy="6" r="2" fill="#fff" />
-                  <circle cx="14" cy="10" r="2" fill="#fff" opacity="0.8" />
-                </g>
-              </g>
-            </svg>
-          </div>
-        </div>
-      </div>
+        </>
+      )}
+      <canvas ref={canvasRef} id="fireworks"></canvas>
     </>
   );
-}
+};
+
+export default DiwaliPopup;
